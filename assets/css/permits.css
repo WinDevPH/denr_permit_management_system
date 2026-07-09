@@ -1,0 +1,113 @@
+/* Landowner Permits – same layout as admin (uses admin_dashboard + admin_users + admin_permits) */
+
+/* Page layout: scrollable content (same as admin-permits-page) */
+.landowner-permits-page .main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.landowner-permits-page .main-content .top-nav,
+.landowner-permits-page .main-content .dashboard-content > header {
+  flex-shrink: 0;
+}
+
+.landowner-permits-page .main-content .dashboard-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Request modal: no plantations warning */
+.landowner-permits-page .no-plantations-warning {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: #fff8e6;
+  border: 1px solid #ffecb3;
+  border-radius: 8px;
+}
+
+.landowner-permits-page .no-plantations-warning i {
+  font-size: 2rem;
+  color: #f57c00;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.landowner-permits-page .no-plantations-warning h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e65100;
+  margin: 0 0 0.5rem;
+}
+
+.landowner-permits-page .no-plantations-warning p {
+  font-size: 0.875rem;
+  color: #5d4037;
+  margin: 0;
+}
+
+/* View modal: detail groups */
+.landowner-permits-page .modal-body .detail-group {
+  margin-bottom: 1rem;
+}
+
+.landowner-permits-page .modal-body .detail-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.landowner-permits-page .modal-body .detail-value {
+  font-size: 0.875rem;
+  color: #212529;
+}
+
+/* Disabled "documents" action button in table */
+.btn-document-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #6c757d !important;
+}
+
+.btn-document-disabled:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #6c757d !important;
+  transform: none;
+}
+
+/* Search empty state (when filters yield no rows) */
+.admin-table-card .empty-state-search {
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  color: #6c757d;
+}
+
+.admin-table-card .empty-state-search .empty-state-icon {
+  color: #adb5bd;
+  stroke: currentColor;
+  fill: none;
+}
+
+.admin-table-card .empty-state-search h5 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.admin-table-card .empty-state-search p {
+  font-size: 0.8125rem;
+  margin: 0;
+}

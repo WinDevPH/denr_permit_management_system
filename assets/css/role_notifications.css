@@ -1,0 +1,147 @@
+/* Shared toast notifications — all roles (admin, verifier, landowner) */
+:root {
+  --role-notif-success: #20c997;
+  --role-notif-danger: #dc3545;
+  --role-notif-dark: #212529;
+  --role-notif-secondary: #6c757d;
+  --role-notif-primary: #007c36;
+}
+
+.modern-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 320px;
+  max-width: min(420px, calc(100vw - 24px));
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  transform: translateX(420px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10050;
+  overflow: hidden;
+}
+
+.modern-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.modern-notification.success {
+  border-left: 4px solid var(--role-notif-success);
+}
+
+.modern-notification.error {
+  border-left: 4px solid var(--role-notif-danger);
+}
+
+.modern-notification .notification-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 2.5rem 1.25rem 1.25rem;
+}
+
+.modern-notification .notification-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.modern-notification.success .notification-icon {
+  background: rgba(32, 201, 151, 0.1);
+  color: var(--role-notif-success);
+}
+
+.modern-notification.error .notification-icon {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--role-notif-danger);
+}
+
+.modern-notification .notification-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.modern-notification .notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.modern-notification .notification-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--role-notif-dark);
+  margin: 0 0 0.25rem 0;
+}
+
+.modern-notification .notification-message {
+  font-size: 0.8rem;
+  color: var(--role-notif-secondary);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.modern-notification .notification-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--role-notif-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+  line-height: 0;
+}
+
+.modern-notification .notification-close:hover {
+  color: var(--role-notif-dark);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.modern-notification .notification-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modern-notification .notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--role-notif-primary), var(--role-notif-success));
+  width: 100%;
+}
+
+@keyframes denrNotifProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (max-width: 576px) {
+  .modern-notification {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+    min-width: 0;
+    transform: translateY(120%);
+  }
+
+  .modern-notification.show {
+    transform: translateY(0);
+  }
+}
