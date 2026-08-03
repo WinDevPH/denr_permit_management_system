@@ -28,6 +28,9 @@ try {
     $tree_species = is_array($tree_species_array) ? implode(', ', $tree_species_array) : trim($tree_species_array);
     
     $land_area = $_POST['land_area'] ?? 0;
+    $age_of_plantation = isset($_POST['age_of_plantation']) && $_POST['age_of_plantation'] !== ''
+        ? floatval($_POST['age_of_plantation'])
+        : null;
     $location_address = $_POST['location_address'] ?? '';
     $district = isset($_POST['district']) ? trim($_POST['district']) : null;
     if ($district === '') {
@@ -93,14 +96,56 @@ try {
     }
     $contact_phone = $contact_digits;
 
+    if ($age_of_plantation === null || $age_of_plantation < 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Age of plantation is required (years, 0 or greater).']);
+        exit();
+    }
+
     // Shapefile / polygon boundary removed — clear stored boundary_geojson on save (Mohon-only).
     $boundary_geojson = null;
+
+    $allowed_doc_types = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    $allowed_image_types = ['image/jpeg', 'image/png', 'image/jpg'];
+    $max_size = 5 * 1024 * 1024;
+    $upload_dir = '../assets/uploads/verification_documents/';
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+    $saveUpload = function (array $file, array $allowed_types, string $label) use ($upload_dir, $max_size): string {
+        if (!in_array($file['type'], $allowed_types, true)) {
+            throw new Exception('Invalid file type for ' . $label . '.');
+        }
+        if ($file['size'] > $max_size) {
+            throw new Exception($label . ' file size exceeds 5MB limit.');
+        }
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $name = uniqid() . '_' . time() . '.' . $ext;
+        if (!move_uploaded_file($file['tmp_name'], $upload_dir . $name)) {
+            throw new Exception('Failed to upload ' . $label . '.');
+        }
+        return 'assets/uploads/verification_documents/' . $name;
+    };
+
+    $tax_declaration_path = null;
+    if (isset($_FILES['tax_declaration']) && $_FILES['tax_declaration']['error'] === UPLOAD_ERR_OK) {
+        $tax_declaration_path = $saveUpload($_FILES['tax_declaration'], $allowed_doc_types, 'Tax Declaration');
+    }
+    $site_photo_path = null;
+    if (isset($_FILES['site_photo']) && $_FILES['site_photo']['error'] === UPLOAD_ERR_OK) {
+        $site_photo_path = $saveUpload($_FILES['site_photo'], $allowed_image_types, 'site photo');
+    }
+    $verification_document = null;
+    if (isset($_FILES['verification_document']) && $_FILES['verification_document']['error'] === UPLOAD_ERR_OK) {
+        $verification_document = $saveUpload($_FILES['verification_document'], $allowed_doc_types, 'verification document');
+    }
 
     // Update plantation data (incl. lot, specifications, landmark coordinates)
     $query = "UPDATE plantations SET 
               plantation_name = ?,
               tree_species = ?,
               land_area = ?,
+              age_of_plantation = ?,
               location_address = ?,
               district = ?,
               contact_person_name = ?,
@@ -113,14 +158,12 @@ try {
               landmark_latitude = ?,
               landmark_longitude = ?,
               mohon_points_json = ?,
-              boundary_geojson = ?
-              WHERE plantation_id = ? AND user_id = ?";
-
-    $stmt = $db->prepare($query);
-    $result = $stmt->execute([
+              boundary_geojson = ?";
+    $params = [
         $plantation_name,
         $tree_species,
         $land_area,
+        $age_of_plantation,
         $location_address,
         $district,
         $contact_person_name,
@@ -134,9 +177,25 @@ try {
         $landmark_longitude,
         $mohon_points_json,
         $boundary_geojson,
-        $plantation_id,
-        $user_id
-    ]);
+    ];
+    if ($verification_document) {
+        $query .= ', verification_document = ?';
+        $params[] = $verification_document;
+    }
+    if ($tax_declaration_path) {
+        $query .= ', tax_declaration_path = ?';
+        $params[] = $tax_declaration_path;
+    }
+    if ($site_photo_path) {
+        $query .= ', site_photo_path = ?';
+        $params[] = $site_photo_path;
+    }
+    $query .= ' WHERE plantation_id = ? AND user_id = ?';
+    $params[] = $plantation_id;
+    $params[] = $user_id;
+
+    $stmt = $db->prepare($query);
+    $result = $stmt->execute($params);
 
     if ($result) {
         // Log the update action

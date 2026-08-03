@@ -79,6 +79,9 @@ try {
         $tree_species = trim((string) $tree_species_raw);
     }
     $land_area = floatval($_POST['land_area'] ?? 0);
+    $age_of_plantation = isset($_POST['age_of_plantation']) && $_POST['age_of_plantation'] !== ''
+        ? floatval($_POST['age_of_plantation'])
+        : null;
     $location_address = trim($_POST['location_address'] ?? '');
     $district = trim($_POST['district'] ?? '');
     if ($district === '') {
@@ -92,6 +95,9 @@ try {
 
     if ($plantation_name === '' || $tree_species === '' || $land_area <= 0 || $location_address === '') {
         throw new Exception('Plantation name, species, land area, and address are required');
+    }
+    if ($age_of_plantation === null || $age_of_plantation < 0) {
+        throw new Exception('Age of plantation is required (years, 0 or greater).');
     }
     if ($contact_person_name === '' || $contact_address === '' || $contact_phone === '') {
         throw new Exception('Contact name, address, and phone are required');
@@ -141,12 +147,12 @@ try {
     $verification_document = null;
 
     $query = "INSERT INTO plantations (
-        user_id, plantation_name, tree_species, land_area,
+        user_id, plantation_name, tree_species, land_area, age_of_plantation,
         location_address, district, contact_person_name, contact_address, contact_phone,
         latitude, longitude, lot_number, specifications,
         landmark_latitude, landmark_longitude, mohon_points_json, boundary_geojson, verification_document, status, registered_at, applied_at
     ) VALUES (
-        :user_id, :plantation_name, :tree_species, :land_area,
+        :user_id, :plantation_name, :tree_species, :land_area, :age_of_plantation,
         :location_address, :district, :contact_person_name, :contact_address, :contact_phone,
         :latitude, :longitude, NULL, NULL,
         :landmark_latitude, :landmark_longitude, :mohon_points_json, :boundary_geojson, :verification_document, 'pending', NOW(), NOW()
@@ -157,6 +163,7 @@ try {
     $stmt->bindParam(':plantation_name', $plantation_name);
     $stmt->bindParam(':tree_species', $tree_species);
     $stmt->bindParam(':land_area', $land_area);
+    $stmt->bindValue(':age_of_plantation', $age_of_plantation);
     $stmt->bindParam(':location_address', $location_address);
     $stmt->bindValue(':district', $district, $district === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
     $stmt->bindParam(':contact_person_name', $contact_person_name);

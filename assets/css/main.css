@@ -72,10 +72,24 @@ body {
   flex-shrink: 0;
 }
 
+.sidebar-logos {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 .sidebar-logo {
   width: 40px;
   height: auto;
   display: block;
+}
+
+.sidebar-logo-fmb {
+  width: 36px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .sidebar-header h3,

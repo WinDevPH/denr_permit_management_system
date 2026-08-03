@@ -58,6 +58,11 @@ try {
                         <h1 class="admin-dashboard-title">Verifier Dashboard</h1>
                         <p class="admin-dashboard-subtitle">Review and verify plantations and permits.</p>
                     </div>
+                    <div class="dashboard-brand-logos" aria-label="Official logos">
+                        <img src="../../../assets/img/denrlogo.png" alt="DENR" class="dashboard-brand-logo">
+                        <img src="../../../assets/img/fmb_logo.png" alt="Forest Management Bureau (FMB)" class="dashboard-brand-logo dashboard-brand-logo-fmb">
+                        <span class="dashboard-brand-caption">FMB · Forest Management Bureau</span>
+                    </div>
                 </header>
 
                 <section class="admin-kpis">
@@ -79,7 +84,7 @@ try {
                     </a>
                     <a href="../plantations/plantations.php?status=validated" class="admin-kpi admin-kpi--info">
                         <div class="admin-kpi-body">
-                            <span class="admin-kpi-label">Validated</span>
+                            <span class="admin-kpi-label">Checked</span>
                             <span class="admin-kpi-value"><?php echo $stats['validated']; ?></span>
                             <span class="admin-kpi-meta">Plantations</span>
                         </div>

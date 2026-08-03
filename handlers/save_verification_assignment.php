@@ -54,11 +54,21 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
-    $pCheck = $db->prepare('SELECT plantation_id, plantation_name, location_address, user_id FROM plantations WHERE plantation_id = ?');
+    $pCheck = $db->prepare('SELECT plantation_id, plantation_name, location_address, user_id, status FROM plantations WHERE plantation_id = ?');
     $pCheck->execute([$plantation_id]);
     $plant = $pCheck->fetch(PDO::FETCH_ASSOC);
     if (!$plant) {
         echo json_encode(['success' => false, 'message' => 'Plantation not found.']);
+        exit;
+    }
+
+    // Admin must CHECK (validate) client details before scheduling a verifier
+    $pStatus = (string) ($plant['status'] ?? '');
+    if (!in_array($pStatus, ['validated', 'registered'], true)) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Check and approve the plantation details first (set status to Checked) before scheduling a verifier.',
+        ]);
         exit;
     }
 

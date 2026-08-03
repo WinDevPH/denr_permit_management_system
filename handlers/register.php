@@ -1,20 +1,20 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-require_once '../config/database.php';
-require_once '../config/contact_utils.php';
-require_once '../config/notifications.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/contact_utils.php';
+require_once __DIR__ . '/../config/notifications.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
     exit;
 }
 
-$full_name = trim($_POST['full_name'] ?? '');
-$email = trim($_POST['email'] ?? '');
-$contact_number = trim($_POST['contact_number'] ?? '');
-$plain_password = $_POST['password'] ?? '';
-$confirm_password = $_POST['confirm_password'] ?? '';
+$full_name = trim((string) ($_POST['full_name'] ?? ''));
+$email = trim((string) ($_POST['email'] ?? ''));
+$contact_number = trim((string) ($_POST['contact_number'] ?? ''));
+$plain_password = (string) ($_POST['password'] ?? '');
+$confirm_password = (string) ($_POST['confirm_password'] ?? '');
 
 if ($full_name === '' || $email === '' || $contact_number === '') {
     echo json_encode(['status' => 'error', 'message' => 'Please fill in all required fields']);
@@ -43,10 +43,26 @@ if (strlen($plain_password) > 128) {
     exit;
 }
 
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid email format']);
+    exit;
+}
+
 $database = new Database();
 $db = $database->getConnection();
 
+if (!$db instanceof PDO) {
+    error_log('register.php: database connection failed');
+    echo json_encode(['status' => 'error', 'message' => 'Database connection failed. Please ensure MySQL is running and try again.']);
+    exit;
+}
+
 $password = password_hash($plain_password, PASSWORD_DEFAULT);
+if ($password === false) {
+    echo json_encode(['status' => 'error', 'message' => 'Could not secure password. Please try again.']);
+    exit;
+}
+
 $role = 'landowner';
 
 try {
@@ -67,7 +83,7 @@ try {
     );
 
     echo json_encode(['status' => 'success', 'message' => 'Registration successful']);
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     error_log('register.php: ' . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Registration failed. Please try again.']);
 }

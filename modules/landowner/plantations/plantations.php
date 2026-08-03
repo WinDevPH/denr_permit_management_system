@@ -140,6 +140,7 @@ function formatTreeSpeciesDisplay($tree_species) {
                             data-name="<?php echo htmlspecialchars($plantation['plantation_name']); ?>"
                             data-tree_species="<?php echo htmlspecialchars($plantation['tree_species']); ?>"
                             data-land_area="<?php echo htmlspecialchars($plantation['land_area']); ?>"
+                            data-age_of_plantation="<?php echo htmlspecialchars($plantation['age_of_plantation'] ?? ''); ?>"
                             data-location_address="<?php echo htmlspecialchars($plantation['location_address']); ?>"
                             data-latitude="<?php echo htmlspecialchars($plantation['latitude'] ?? ''); ?>"
                             data-longitude="<?php echo htmlspecialchars($plantation['longitude'] ?? ''); ?>"
@@ -153,8 +154,17 @@ function formatTreeSpeciesDisplay($tree_species) {
                             data-status="<?php echo $plantation['status']; ?>">
 
                             <div class="plantation-status <?php echo $plantation['status']; ?>">
-                                <?php echo ucfirst($plantation['status']); ?>
+                                <?php
+                                $st = $plantation['status'];
+                                echo htmlspecialchars($st === 'validated' ? 'Checked' : ucfirst($st));
+                                ?>
                             </div>
+                            <?php if ($st === 'rejected' && !empty($plantation['rejection_reason'])): ?>
+                            <div class="small text-danger px-3 pt-1">
+                                <i class="fas fa-ban"></i>
+                                <?php echo htmlspecialchars($plantation['rejection_reason']); ?>
+                            </div>
+                            <?php endif; ?>
 
                             <div class="plantation-content">
                                 <div class="plantation-header">
@@ -170,6 +180,15 @@ function formatTreeSpeciesDisplay($tree_species) {
                                         <i class="fas fa-ruler-combined"></i>
                                         <span><?php echo number_format($plantation['land_area'], 2); ?> hectares</span>
                                     </div>
+                                    <?php if (isset($plantation['age_of_plantation']) && $plantation['age_of_plantation'] !== null && $plantation['age_of_plantation'] !== ''): ?>
+                                    <div class="info-item">
+                                        <i class="fas fa-hourglass-half"></i>
+                                        <span><?php
+                                            $ageVal = (float) $plantation['age_of_plantation'];
+                                            echo htmlspecialchars(rtrim(rtrim(number_format($ageVal, 1, '.', ''), '0'), '.'));
+                                        ?> year<?php echo abs($ageVal - 1.0) < 0.001 ? '' : 's'; ?> old</span>
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="info-item">
                                         <i class="fas fa-map-marker-alt"></i>
                                         <span><?php echo htmlspecialchars($plantation['location_address']); ?></span>
@@ -266,13 +285,37 @@ function formatTreeSpeciesDisplay($tree_species) {
                                     accept="image/*,.pdf,.doc,.docx" id="verification_document">
                             </div>
                             <small class="form-text text-muted">
-                                Upload documents for verification (Land Title, Tax Declaration, Photos, etc.).
+                                Upload land title or other ownership documents.
                                 Max file size: 5MB. Accepted formats: JPG, PNG, PDF, DOC, DOCX
                             </small>
                         </div>
 
+                        <div class="form-group">
+                            <label class="form-label">Tax Declaration <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
+                                <input type="file" class="form-control" name="tax_declaration"
+                                    accept="image/*,.pdf,.doc,.docx" id="tax_declaration">
+                            </div>
+                            <small class="form-text text-muted">
+                                Upload Tax Declaration. Max 5MB (JPG, PNG, PDF, DOC, DOCX).
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Picture of the site <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-camera"></i></span>
+                                <input type="file" class="form-control" name="site_photo"
+                                    accept="image/*" id="site_photo">
+                            </div>
+                            <small class="form-text text-muted">
+                                Clear photo of the plantation site. Max 5MB (JPG, PNG).
+                            </small>
+                        </div>
+
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Land Area (hectares)</label>
                                     <div class="input-group">
@@ -282,14 +325,28 @@ function formatTreeSpeciesDisplay($tree_species) {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label class="form-label">Location Address</label>
+                                    <label class="form-label">Age of Plantation (years) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-hourglass-half"></i></span>
+                                        <input type="number" class="form-control" name="age_of_plantation"
+                                            id="age_of_plantation" step="0.1" min="0" max="9999"
+                                            placeholder="e.g. 5" required>
+                                    </div>
+                                    <small class="form-text text-muted">How many years old is the plantation?</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Location Address <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
                                         <input type="text" class="form-control" name="location_address"
-                                            id="location_address" required>
+                                            id="location_address" required
+                                            placeholder="Site location for Tax Declaration">
                                     </div>
+                                    <small class="form-text text-muted">Location of the site (required with Tax Declaration).</small>
                                 </div>
                             </div>
                         </div>
@@ -1401,6 +1458,8 @@ function formatTreeSpeciesDisplay($tree_species) {
         updateRemoveSpeciesButtons();
         
         document.querySelector('input[name="land_area"]').value = card.getAttribute('data-land_area') || '';
+        var ageEl = document.getElementById('age_of_plantation');
+        if (ageEl) ageEl.value = card.getAttribute('data-age_of_plantation') || '';
         document.getElementById('location_address').value = card.getAttribute('data-location_address') || '';
         var cname = document.getElementById('contact_person_name');
         var caddr = document.getElementById('contact_address');

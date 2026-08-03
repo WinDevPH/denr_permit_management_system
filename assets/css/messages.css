@@ -675,15 +675,23 @@
   box-shadow: none !important;
 }
 .msg-composer-send {
-  width: 44px;
+  min-width: 44px;
   height: 44px;
-  padding: 0;
+  padding: 0 0.85rem;
+  gap: 0.4rem;
   border-radius: var(--msg-radius-sm) !important;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: background var(--msg-transition), transform var(--msg-transition);
+}
+
+.msg-composer-send-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 .msg-composer-send:hover {
   background: var(--msg-primary-hover) !important;

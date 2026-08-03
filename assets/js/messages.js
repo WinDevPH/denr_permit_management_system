@@ -246,7 +246,7 @@ function handleMessageFormSubmit(e) {
           denrNotifyError("Error sending message: " + (data.message || "Unknown error"));
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span class="msg-composer-send-label">SEND</span>';
           }
         }
       })
@@ -255,7 +255,7 @@ function handleMessageFormSubmit(e) {
         denrNotifyError("Error sending message: " + error.message);
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span class="msg-composer-send-label">SEND</span>';
         }
       });
   } catch (error) {

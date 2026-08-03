@@ -40,7 +40,10 @@ try {
     <!-- Verifier Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <img src="../../../assets/img/denrlogo.png" alt="DENR Logo" class="sidebar-logo">
+            <div class="sidebar-logos" aria-label="DENR and FMB">
+                <img src="../../../assets/img/denrlogo.png" alt="DENR Logo" class="sidebar-logo">
+                <img src="../../../assets/img/fmb_logo.png" alt="Forest Management Bureau Logo" class="sidebar-logo sidebar-logo-fmb">
+            </div>
             <span class="sidebar-title">DENR Verifier</span>
         </div>
 
@@ -64,16 +67,6 @@ try {
                             <path d="M9 8c0 1.5 1.5 3 3 3s3-1.5 3-3c0-2-1.5-4-3-4S9 6 9 8Z" />
                             <path d="M12 15c-4 0-7-2-7-7 0-2 1-4 2-5h10c1 1 2 3 2 5 0 5-3 7-7 7Z" />
                         </svg><span class="sidebar-nav-text">Verify Locations</span></a>
-                </li>
-                <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'permits.php' ? 'active' : ''; ?>">
-                    <a href="../permits/permits.php"><svg class="sidebar-icon" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                            <polyline points="10 9 9 9 8 9" />
-                        </svg><span class="sidebar-nav-text">Verify Permits</span></a>
                 </li>
                 <li class="<?php echo basename($_SERVER['PHP_SELF']) === 'calendar.php' ? 'active' : ''; ?>">
                     <a href="../calendar/calendar.php"><svg class="sidebar-icon" viewBox="0 0 24 24" fill="none"

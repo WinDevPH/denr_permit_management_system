@@ -69,6 +69,7 @@ try {
         "SELECT p.plantation_id, p.plantation_name, p.location_address, p.status, COALESCE(p.district,'') AS district, u.full_name AS owner_name
          FROM plantations p
          JOIN users u ON p.user_id = u.user_id
+         WHERE p.status IN ('validated', 'registered')
          ORDER BY p.registered_at DESC"
     )->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (PDOException $e) {
@@ -77,6 +78,7 @@ try {
             "SELECT p.plantation_id, p.plantation_name, p.location_address, p.status, '' AS district, u.full_name AS owner_name
              FROM plantations p
              JOIN users u ON p.user_id = u.user_id
+             WHERE p.status IN ('validated', 'registered')
              ORDER BY p.registered_at DESC"
         )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (PDOException $e2) {
@@ -122,7 +124,7 @@ $assignmentsJson = json_encode(array_map(function ($a) {
                 <header class="admin-dashboard-header">
                     <div>
                         <h1 class="admin-dashboard-title">Calendar</h1>
-                        <p class="admin-dashboard-subtitle">Schedule verifiers to visit landowner plantations. Verifiers are notified and see details on their calendar.</p>
+                        <p class="admin-dashboard-subtitle">Schedule verifiers to visit landowner plantations after admin has Checked their details. Verifiers are notified and see details on their calendar.</p>
                     </div>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleVerificationModal">
                         <i class="fas fa-calendar-plus"></i> Schedule plantation verification
@@ -256,12 +258,17 @@ $assignmentsJson = json_encode(array_map(function ($a) {
                             <?php endif; ?>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label" for="schedule_plantation_id">Plantation (landowner) <span class="text-danger">*</span></label>
+                            <label class="form-label" for="schedule_plantation_id">Plantation (Checked only) <span class="text-danger">*</span></label>
                             <select class="form-select" name="plantation_id" id="schedule_plantation_id" required>
-                                <option value="">— Select plantation —</option>
+                                <option value="">— Select checked plantation —</option>
+                                <?php if (empty($plantations_for_schedule)): ?>
+                                <option value="" disabled>No checked plantations yet — review details first</option>
+                                <?php endif; ?>
                                 <?php foreach ($plantations_for_schedule as $pl): ?>
                                 <option value="<?php echo (int) $pl['plantation_id']; ?>" data-district="<?php echo htmlspecialchars(strtolower($pl['district'] ?? '')); ?>">
-                                    <?php echo htmlspecialchars($pl['plantation_name']); ?> — <?php echo htmlspecialchars($pl['owner_name']); ?> (<?php echo htmlspecialchars($pl['status']); ?>)<?php echo ($pl['district'] ?? '') !== '' ? ' · ' . htmlspecialchars($pl['district']) : ''; ?>
+                                    <?php
+                                    $plStatusLabel = ($pl['status'] ?? '') === 'validated' ? 'Checked' : ucfirst((string) ($pl['status'] ?? ''));
+                                    echo htmlspecialchars($pl['plantation_name']); ?> — <?php echo htmlspecialchars($pl['owner_name']); ?> (<?php echo htmlspecialchars($plStatusLabel); ?>)<?php echo ($pl['district'] ?? '') !== '' ? ' · ' . htmlspecialchars($pl['district']) : ''; ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>

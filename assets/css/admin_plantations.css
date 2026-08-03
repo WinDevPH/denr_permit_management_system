@@ -116,6 +116,11 @@
   color: #004085;
 }
 
+.admin-plantations .status-rejected {
+  background: rgba(220, 53, 69, 0.15);
+  color: #842029;
+}
+
 /* Table & action buttons – use .admin-table, .action-buttons, .btn-action, .btn-review from admin_users.css */
 
 /* Review Modal – clean UI/UX, uses .modern-modal from admin_users.css */

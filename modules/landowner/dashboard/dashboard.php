@@ -236,6 +236,11 @@ function timeAgo($timestamp)
                         <h1 class="admin-dashboard-title">Dashboard</h1>
                         <p class="admin-dashboard-subtitle">Overview of your plantations and permits.</p>
                     </div>
+                    <div class="dashboard-brand-logos" aria-label="Official logos">
+                        <img src="../../../assets/img/denrlogo.png" alt="DENR" class="dashboard-brand-logo">
+                        <img src="../../../assets/img/fmb_logo.png" alt="Forest Management Bureau (FMB)" class="dashboard-brand-logo dashboard-brand-logo-fmb">
+                        <span class="dashboard-brand-caption">FMB · Forest Management Bureau</span>
+                    </div>
                 </header>
 
                 <section class="admin-kpis">

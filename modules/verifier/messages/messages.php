@@ -254,6 +254,7 @@ function getProfileImage($profileImg) {
                                     aria-label="Message text"></textarea>
                                 <button type="submit" class="msg-composer-send btn btn-success" title="Send message" aria-label="Send">
                                     <i class="fas fa-paper-plane"></i>
+                                    <span class="msg-composer-send-label">SEND</span>
                                 </button>
                             </div>
                         </form>

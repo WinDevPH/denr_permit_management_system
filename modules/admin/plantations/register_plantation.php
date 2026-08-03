@@ -81,13 +81,17 @@ $species = $db->query('SELECT species_id, species_name, scientific_name FROM tre
                             <small class="text-muted">If you use the text field, use the exact registered email or full name when possible. The dropdown is filled automatically when a unique match is found.</small>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label">Plantation name <span class="text-danger">*</span></label>
                             <input type="text" name="plantation_name" class="form-control" required maxlength="200">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Land area (ha) <span class="text-danger">*</span></label>
                             <input type="number" name="land_area" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Age of plantation (years) <span class="text-danger">*</span></label>
+                            <input type="number" name="age_of_plantation" class="form-control" step="0.1" min="0" max="9999" placeholder="e.g. 5" required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">District (optional)</label>

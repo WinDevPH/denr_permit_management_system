@@ -47,6 +47,7 @@ try {
             ['contact_person_name', "ADD COLUMN `contact_person_name` varchar(150) DEFAULT NULL AFTER `boundary_geojson`"],
             ['contact_address', "ADD COLUMN `contact_address` text DEFAULT NULL AFTER `contact_person_name`"],
             ['contact_phone', "ADD COLUMN `contact_phone` varchar(80) DEFAULT NULL AFTER `contact_address`"],
+            ['age_of_plantation', "ADD COLUMN `age_of_plantation` decimal(5,1) DEFAULT NULL AFTER `land_area`"],
         ] as $col
     ) {
         if (!columnExists($db, 'plantations', $col[0])) {

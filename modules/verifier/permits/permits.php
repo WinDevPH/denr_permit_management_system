@@ -348,7 +348,7 @@ $stats = [
                         </div>
                         <div class="modal-title-text">
                             <h2 id="permitModalLabel" class="modal-title-heading">Review Permit</h2>
-                            <p class="modal-title-sub">View details and approve or reject</p>
+                            <p class="modal-title-sub" id="permitModalSub">View details and approve or reject</p>
                         </div>
                     </div>
                     <button type="button" class="btn-close modern-close" data-bs-dismiss="modal" aria-label="Close">
@@ -380,7 +380,7 @@ $stats = [
                                 aria-label="Permit details"></div>
                         </section>
 
-                        <section class="modal-section modal-section-actions" aria-labelledby="permitFormHeading">
+                        <section class="modal-section modal-section-actions" id="permitReviewActions" aria-labelledby="permitFormHeading">
                             <h3 id="permitFormHeading" class="modal-section-title">Review</h3>
                             <div class="form-grid form-grid-permit">
                                 <div class="form-group">
@@ -400,6 +400,9 @@ $stats = [
                                 </div>
                             </div>
                         </section>
+                        <div id="permitIssuedNotice" class="alert alert-info mx-3" style="display: none;">
+                            This permit has been issued and can no longer be edited.
+                        </div>
                     </div>
                     <footer class="modal-footer modern-footer">
                         <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
@@ -408,15 +411,15 @@ $stats = [
                                 <line x1="18" y1="6" x2="6" y2="18" />
                                 <line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
-                            Cancel
+                            <span id="permitCancelLabel">Cancel</span>
                         </button>
-                        <button type="submit" class="btn btn-update">
+                        <button type="submit" class="btn btn-update" id="permitSubmitBtn">
                             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                 <polyline points="22 4 12 14.01 9 11.01" />
                             </svg>
-                            Submit
+                            Send
                         </button>
                     </footer>
                 </form>
@@ -547,7 +550,28 @@ $stats = [
         `;
 
         document.getElementById('permitDetails').innerHTML = details;
-        document.getElementById('permitStatus').value = 'approved';
+        const issued = permit.status === 'approved';
+        const actions = document.getElementById('permitReviewActions');
+        const notice = document.getElementById('permitIssuedNotice');
+        const submitBtn = document.getElementById('permitSubmitBtn');
+        const statusSel = document.getElementById('permitStatus');
+        const remarks = document.getElementById('permitRemarks');
+        const sub = document.getElementById('permitModalSub');
+        const cancelLabel = document.getElementById('permitCancelLabel');
+        if (actions) actions.style.display = issued ? 'none' : '';
+        if (notice) notice.style.display = issued ? '' : 'none';
+        if (submitBtn) submitBtn.style.display = issued ? 'none' : '';
+        if (statusSel) {
+            statusSel.required = !issued;
+            statusSel.disabled = issued;
+            statusSel.value = issued ? '' : (permit.defaultStatus || 'approved');
+        }
+        if (remarks) {
+            remarks.disabled = issued;
+            remarks.value = permit.remarks || '';
+        }
+        if (sub) sub.textContent = issued ? 'Issued permit — view only' : 'View details and approve or reject';
+        if (cancelLabel) cancelLabel.textContent = issued ? 'Close' : 'Cancel';
         new bootstrap.Modal(document.getElementById('permitModal')).show();
     }
 

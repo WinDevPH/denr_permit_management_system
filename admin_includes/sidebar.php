@@ -40,7 +40,10 @@ try {
     <!-- Admin Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <img src="../../../assets/img/denrlogo.png" alt="DENR Logo" class="sidebar-logo">
+            <div class="sidebar-logos" aria-label="DENR and FMB">
+                <img src="../../../assets/img/denrlogo.png" alt="DENR Logo" class="sidebar-logo">
+                <img src="../../../assets/img/fmb_logo.png" alt="Forest Management Bureau Logo" class="sidebar-logo sidebar-logo-fmb">
+            </div>
             <span class="sidebar-title">DENR Admin</span>
         </div>
 

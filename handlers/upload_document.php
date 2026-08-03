@@ -55,7 +55,7 @@ try {
 
     $relative = 'assets/uploads/documents/' . $filename;
 
-    $allowed_cat = ['', 'land_title', 'moa', 'permit', 'certificate', 'other'];
+    $allowed_cat = ['', 'land_title', 'tax_declaration', 'moa', 'permit', 'certificate', 'other'];
     if (!in_array($document_category, $allowed_cat, true)) {
         $document_category = 'other';
     }

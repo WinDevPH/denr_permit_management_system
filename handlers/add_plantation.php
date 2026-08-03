@@ -23,6 +23,9 @@ try {
     $tree_species = is_array($tree_species_array) ? implode(', ', $tree_species_array) : trim($tree_species_array);
     
     $land_area = floatval($_POST['land_area']);
+    $age_of_plantation = isset($_POST['age_of_plantation']) && $_POST['age_of_plantation'] !== ''
+        ? floatval($_POST['age_of_plantation'])
+        : null;
     $location_address = trim($_POST['location_address']);
     $district = isset($_POST['district']) ? trim($_POST['district']) : null;
     if ($district === '') {
@@ -70,6 +73,9 @@ try {
     if (empty($plantation_name) || empty($tree_species) || $land_area <= 0 || empty($location_address)) {
         throw new Exception('All fields are required');
     }
+    if ($age_of_plantation === null || $age_of_plantation < 0) {
+        throw new Exception('Age of plantation is required (years, 0 or greater).');
+    }
     if ($contact_person_name === '' || $contact_address === '' || $contact_phone === '') {
         throw new Exception('Contact name, address, and contact number are required');
     }
@@ -88,40 +94,64 @@ try {
         throw new Exception('Define the plantation boundary: place at least two Mohon points on the map.');
     }
 
-    // Handle file upload
-    $verification_document = null;
-    if (isset($_FILES['verification_document']) && $_FILES['verification_document']['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES['verification_document'];
-        $allowed_types = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 
-                         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        $max_size = 5 * 1024 * 1024; // 5MB
+    $allowed_doc_types = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    $allowed_image_types = ['image/jpeg', 'image/png', 'image/jpg'];
+    $max_size = 5 * 1024 * 1024; // 5MB
+    $upload_dir = '../assets/uploads/verification_documents/';
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
 
-        // Validate file type
-        if (!in_array($file['type'], $allowed_types)) {
-            throw new Exception('Invalid file type. Only JPG, PNG, PDF, DOC, and DOCX files are allowed.');
+    // Ensure age column exists (migration may not have been run yet)
+    try {
+        $colCheck = $db->query("SHOW COLUMNS FROM plantations LIKE 'age_of_plantation'");
+        if ($colCheck && $colCheck->rowCount() === 0) {
+            $db->exec('ALTER TABLE plantations ADD COLUMN age_of_plantation decimal(5,1) DEFAULT NULL AFTER land_area');
         }
+    } catch (Throwable $e) {
+        error_log('age_of_plantation column check: ' . $e->getMessage());
+    }
 
-        // Validate file size
+    $saveUpload = function (array $file, array $allowed_types, string $label) use ($upload_dir, $max_size): string {
+        if (!in_array($file['type'], $allowed_types, true)) {
+            throw new Exception('Invalid file type for ' . $label . '.');
+        }
         if ($file['size'] > $max_size) {
-            throw new Exception('File size exceeds 5MB limit.');
+            throw new Exception($label . ' file size exceeds 5MB limit.');
         }
-
-        // Create upload directory if it doesn't exist
-        $upload_dir = '../assets/uploads/verification_documents/';
-        if (!file_exists($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-
-        // Generate unique filename
         $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
         $unique_filename = uniqid() . '_' . time() . '.' . $file_extension;
         $upload_path = $upload_dir . $unique_filename;
+        if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
+            throw new Exception('Failed to upload ' . $label . '.');
+        }
+        return 'assets/uploads/verification_documents/' . $unique_filename;
+    };
 
-        // Move uploaded file
-        if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-            $verification_document = 'assets/uploads/verification_documents/' . $unique_filename;
-        } else {
-            throw new Exception('Failed to upload verification document.');
+    // Handle file uploads
+    $verification_document = null;
+    if (isset($_FILES['verification_document']) && $_FILES['verification_document']['error'] === UPLOAD_ERR_OK) {
+        $verification_document = $saveUpload($_FILES['verification_document'], $allowed_doc_types, 'verification document');
+    }
+
+    $tax_declaration_path = null;
+    if (isset($_FILES['tax_declaration']) && $_FILES['tax_declaration']['error'] === UPLOAD_ERR_OK) {
+        $tax_declaration_path = $saveUpload($_FILES['tax_declaration'], $allowed_doc_types, 'Tax Declaration');
+    }
+
+    $site_photo_path = null;
+    if (isset($_FILES['site_photo']) && $_FILES['site_photo']['error'] === UPLOAD_ERR_OK) {
+        $site_photo_path = $saveUpload($_FILES['site_photo'], $allowed_image_types, 'site photo');
+    }
+
+    // New applications require Tax Declaration + site photo (+ location already validated above)
+    if (!$plantation_id) {
+        if (!$tax_declaration_path) {
+            throw new Exception('Tax Declaration is required.');
+        }
+        if (!$site_photo_path) {
+            throw new Exception('Picture of the site is required.');
         }
     }
 
@@ -131,6 +161,7 @@ try {
                     plantation_name = :plantation_name,
                     tree_species = :tree_species,
                     land_area = :land_area,
+                    age_of_plantation = :age_of_plantation,
                     location_address = :location_address,
                     district = :district,
                     contact_person_name = :contact_person_name,
@@ -146,9 +177,15 @@ try {
                     boundary_geojson = :boundary_geojson,
                     updated_at = NOW()";
         
-        // Add verification document to update if uploaded
+        // Add uploaded docs to update if provided
         if ($verification_document) {
             $query .= ", verification_document = :verification_document";
+        }
+        if ($tax_declaration_path) {
+            $query .= ", tax_declaration_path = :tax_declaration_path";
+        }
+        if ($site_photo_path) {
+            $query .= ", site_photo_path = :site_photo_path";
         }
         
         $query .= " WHERE plantation_id = :plantation_id AND user_id = :user_id";
@@ -161,22 +198,32 @@ try {
         if ($verification_document) {
             $stmt->bindParam(':verification_document', $verification_document);
         }
+        if ($tax_declaration_path) {
+            $stmt->bindParam(':tax_declaration_path', $tax_declaration_path);
+        }
+        if ($site_photo_path) {
+            $stmt->bindParam(':site_photo_path', $site_photo_path);
+        }
     } else {
         // Insert new record (specification of plantation, lot, landmark coordinates)
         $query = "INSERT INTO plantations (
-                    user_id, plantation_name, tree_species, land_area, 
+                    user_id, plantation_name, tree_species, land_area, age_of_plantation,
                     location_address, district, contact_person_name, contact_address, contact_phone,
                     latitude, longitude, lot_number, specifications,
-                    landmark_latitude, landmark_longitude, mohon_points_json, boundary_geojson, verification_document, status, registered_at, applied_at
+                    landmark_latitude, landmark_longitude, mohon_points_json, boundary_geojson,
+                    verification_document, tax_declaration_path, site_photo_path, status, registered_at, applied_at
                 ) VALUES (
-                    :user_id, :plantation_name, :tree_species, :land_area,
+                    :user_id, :plantation_name, :tree_species, :land_area, :age_of_plantation,
                     :location_address, :district, :contact_person_name, :contact_address, :contact_phone,
                     :latitude, :longitude, :lot_number, :specifications,
-                    :landmark_latitude, :landmark_longitude, :mohon_points_json, :boundary_geojson, :verification_document, 'pending', NOW(), NOW()
+                    :landmark_latitude, :landmark_longitude, :mohon_points_json, :boundary_geojson,
+                    :verification_document, :tax_declaration_path, :site_photo_path, 'pending', NOW(), NOW()
                 )";
 
         $stmt = $db->prepare($query);
         $stmt->bindParam(':verification_document', $verification_document);
+        $stmt->bindParam(':tax_declaration_path', $tax_declaration_path);
+        $stmt->bindParam(':site_photo_path', $site_photo_path);
     }
 
     // Bind parameters
@@ -184,6 +231,7 @@ try {
     $stmt->bindParam(':plantation_name', $plantation_name);
     $stmt->bindParam(':tree_species', $tree_species);
     $stmt->bindParam(':land_area', $land_area);
+    $stmt->bindValue(':age_of_plantation', $age_of_plantation);
     $stmt->bindParam(':location_address', $location_address);
     if (!isset($plantation_id) || !$plantation_id) {
         $stmt->bindValue(':district', $district, $district === null ? PDO::PARAM_NULL : PDO::PARAM_STR);

@@ -38,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $plantation_name = (string) ($permit_data['plantation_name'] ?? 'plantation');
         $ptype_label = denr_permit_type_label((string) ($permit_data['permit_type'] ?? 'cutting'));
 
+        // Issued permits must not be editable
+        if ($old_status === 'approved') {
+            throw new Exception('This permit has already been issued and can no longer be edited.');
+        }
+
+        if (!in_array($status, ['approved', 'rejected'], true)) {
+            throw new Exception('Invalid permit action');
+        }
+
         // Update permit status
         $query = "UPDATE permits SET 
                   status = :status,
@@ -46,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHEN :status = 'approved' THEN CURRENT_TIMESTAMP
                     ELSE NULL 
                   END
-                  WHERE permit_id = :permit_id";
+                  WHERE permit_id = :permit_id AND status = 'pending'";
                   
         $stmt = $db->prepare($query);
         $stmt->execute([
@@ -54,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':remarks' => $remarks,
             ':permit_id' => $permit_id
         ]);
+        if ($stmt->rowCount() === 0) {
+            throw new Exception('This permit has already been issued and can no longer be edited.');
+        }
 
         // Optional document upload on approve (e.g. admin flow); skip if no file submitted
         if ($status === 'approved'

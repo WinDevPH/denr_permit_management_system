@@ -211,6 +211,7 @@ $plantation_names = array_values(array_unique(array_column($documents, 'plantati
                                 <i class="fas fa-tag doc-input-icon"></i>
                                 <select id="documentCategory" name="document_category" class="doc-form-select" required>
                                     <option value="land_title">Land title / titulo</option>
+                                    <option value="tax_declaration">Tax Declaration</option>
                                     <option value="moa">Memorandum of Agreement (MOA)</option>
                                     <option value="permit">Permit / clearance</option>
                                     <option value="certificate">Certificate</option>

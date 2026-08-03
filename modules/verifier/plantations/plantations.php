@@ -138,7 +138,7 @@ $stats = [
                         </div>
                         <div class="stat-content">
                             <span class="stat-number"><?php echo $stats['validated']; ?></span>
-                            <span class="stat-label">Validated</span>
+                            <span class="stat-label">Checked</span>
                         </div>
                     </div>
                     <div class="admin-stat-item">
@@ -154,7 +154,7 @@ $stats = [
                         </div>
                         <div class="stat-content">
                             <span class="stat-number"><?php echo $stats['registered']; ?></span>
-                            <span class="stat-label">Registered</span>
+                            <span class="stat-label">Verified</span>
                         </div>
                     </div>
                 </div>
@@ -178,8 +178,12 @@ $stats = [
                                 <option value="">All Status</option>
                                 <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>
                                     Pending</option>
+                                <option value="validated"
+                                    <?php echo $status_filter === 'validated' ? 'selected' : ''; ?>>Checked</option>
                                 <option value="registered"
-                                    <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
+                                    <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Verified</option>
+                                <option value="rejected"
+                                    <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -311,7 +315,11 @@ $stats = [
                                     </td>
                                     <td>
                                         <span
-                                            class="status-badge status-<?php echo $plantation['status']; ?>"><?php echo ucfirst($plantation['status']); ?></span>
+                                            class="status-badge status-<?php echo $plantation['status']; ?>"><?php
+                                            $stLabel = $plantation['status'] === 'validated' ? 'Checked'
+                                                : ($plantation['status'] === 'registered' ? 'Verified' : ucfirst($plantation['status']));
+                                            echo htmlspecialchars($stLabel);
+                                            ?></span>
                                     </td>
                                     <td>
                                         <div class="action-buttons">
@@ -472,21 +480,33 @@ $stats = [
 
                         <section class="modal-section modal-section-actions" aria-labelledby="reviewFormHeading">
                             <h3 id="reviewFormHeading" class="modal-section-title">Review</h3>
+                            <p class="small text-muted mb-2">Choose <strong>Verified</strong> or <strong>Reject</strong>. A reason and notes are required only when rejecting.</p>
                             <div class="form-grid form-grid-review">
                                 <div class="form-group">
                                     <label class="form-label" for="statusSelect">Status</label>
                                     <select name="status" id="statusSelect" class="form-control modern-select" required
-                                        aria-required="true">
+                                        aria-required="true" onchange="toggleRejectionReason()">
                                         <option value="">Select status...</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="registered">Registered</option>
+                                        <option value="registered">Verified</option>
+                                        <option value="rejected">Reject</option>
                                     </select>
                                 </div>
-                                <div class="form-group form-group-full">
-                                    <label class="form-label" for="remarksArea">Notes</label>
+                                <div class="form-group form-group-full" id="rejectionReasonGroup" style="display: none;">
+                                    <label class="form-label" for="rejectionReason">Reason for rejection <span class="text-danger">*</span></label>
+                                    <select name="rejection_reason" id="rejectionReason" class="form-control modern-select">
+                                        <option value="">Select reason...</option>
+                                        <option value="Incomplete required documents">Incomplete required documents</option>
+                                        <option value="Invalid land ownership document">Invalid land ownership document</option>
+                                        <option value="Invalid or unreadable uploaded files">Invalid or unreadable uploaded files</option>
+                                        <option value="Incorrect plantation location">Incorrect plantation location</option>
+                                        <option value="Applicant information does not match submitted documents">Applicant information does not match submitted documents</option>
+                                    </select>
+                                </div>
+                                <div class="form-group form-group-full" id="remarksGroup" style="display: none;">
+                                    <label class="form-label" for="remarksArea">Notes <span class="text-danger">*</span></label>
                                     <textarea name="remarks" id="remarksArea"
                                         class="form-control modern-input modern-textarea" rows="3"
-                                        placeholder="Add feedback or remarks (optional)"></textarea>
+                                        placeholder="Add rejection notes / additional details"></textarea>
                                 </div>
                             </div>
                         </section>
@@ -571,12 +591,39 @@ $stats = [
         }
     }
 
+    function toggleRejectionReason() {
+        const statusSelect = document.getElementById('statusSelect');
+        const group = document.getElementById('rejectionReasonGroup');
+        const reason = document.getElementById('rejectionReason');
+        const remarksGroup = document.getElementById('remarksGroup');
+        const remarks = document.getElementById('remarksArea');
+        if (!statusSelect || !group || !reason) return;
+        const isRejected = statusSelect.value === 'rejected';
+        group.style.display = isRejected ? '' : 'none';
+        reason.required = isRejected;
+        if (!isRejected) reason.value = '';
+        if (remarksGroup) remarksGroup.style.display = isRejected ? '' : 'none';
+        if (remarks) {
+            remarks.required = isRejected;
+            if (!isRejected) remarks.value = '';
+        }
+    }
+
     function reviewPlantation(plantation) {
         document.getElementById('plantation_id').value = plantation.plantation_id;
 
-        // Set current status in dropdown
+        // Set current status in dropdown (verifier: Verified or Reject only)
         const statusSelect = document.getElementById('statusSelect');
-        statusSelect.value = plantation.status;
+        if (plantation.status === 'registered' || plantation.status === 'rejected') {
+            statusSelect.value = plantation.status;
+        } else {
+            statusSelect.value = '';
+        }
+        const reasonSel = document.getElementById('rejectionReason');
+        if (reasonSel) {
+            reasonSel.value = plantation.rejection_reason || '';
+        }
+        toggleRejectionReason();
 
         let mohonPts = [];
         try {
@@ -595,6 +642,10 @@ $stats = [
                 lng: parseFloat(plantation.landmark_longitude)
             }];
         }
+
+        const ageDisplay = (plantation.age_of_plantation !== null && plantation.age_of_plantation !== undefined && plantation.age_of_plantation !== '')
+            ? (parseFloat(plantation.age_of_plantation) + ' year(s)')
+            : '';
 
         const details = `
             <div class="location-detail-item">
@@ -618,6 +669,14 @@ $stats = [
                     <span>${plantation.land_area} ha</span>
                 </div>
             </div>
+            ${ageDisplay ? `
+            <div class="location-detail-item">
+                <i class="fas fa-hourglass-half"></i>
+                <div>
+                    <strong>Age of plantation</strong>
+                    <span>${ageDisplay}</span>
+                </div>
+            </div>` : ''}
             <div class="location-detail-item">
                 <i class="fas fa-map-marker-alt"></i>
                 <div>
@@ -689,6 +748,38 @@ $stats = [
                             <i class="fas fa-download"></i> View Document
                         </a>
                     </span>
+                </div>
+            </div>` : ''}
+            ${plantation.tax_declaration_path ? `
+            <div class="location-detail-item">
+                <i class="fas fa-file-invoice"></i>
+                <div>
+                    <strong>Tax Declaration</strong>
+                    <span>
+                        <a href="../../../${plantation.tax_declaration_path}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download"></i> View Tax Declaration
+                        </a>
+                    </span>
+                </div>
+            </div>` : ''}
+            ${plantation.site_photo_path ? `
+            <div class="location-detail-item">
+                <i class="fas fa-camera"></i>
+                <div>
+                    <strong>Picture of the site</strong>
+                    <span>
+                        <a href="../../../${plantation.site_photo_path}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-image"></i> View Site Photo
+                        </a>
+                    </span>
+                </div>
+            </div>` : ''}
+            ${plantation.status === 'rejected' && plantation.rejection_reason ? `
+            <div class="location-detail-item">
+                <i class="fas fa-ban text-danger"></i>
+                <div>
+                    <strong>Rejection reason</strong>
+                    <span>${plantation.rejection_reason}</span>
                 </div>
             </div>` : ''}
         `;

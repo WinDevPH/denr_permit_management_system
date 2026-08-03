@@ -11,12 +11,29 @@ require_once __DIR__ . '/../config/notifications.php';
 $database = new Database();
 $db = $database->getConnection();
 
+$rejection_presets = [
+    'Incomplete required documents',
+    'Invalid land ownership document',
+    'Invalid or unreadable uploaded files',
+    'Incorrect plantation location',
+    'Applicant information does not match submitted documents',
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $plantation_id = $_POST['plantation_id'] ?? '';
     $status = $_POST['status'] ?? '';
     $remarks = $_POST['remarks'] ?? '';
+    $rejection_reason = trim((string) ($_POST['rejection_reason'] ?? ''));
+    $is_verifier = (isset($_SESSION['role']) && $_SESSION['role'] === 'verifier');
 
     try {
+        $allowed = $is_verifier
+            ? ['registered', 'rejected']
+            : ['pending', 'validated', 'registered', 'rejected'];
+        if (!in_array($status, $allowed, true)) {
+            throw new Exception('Invalid status selected');
+        }
+
         // First, get the plantation's user_id before updating
         $user_query = "SELECT user_id, status as old_status, plantation_name FROM plantations WHERE plantation_id = :plantation_id";
         $user_stmt = $db->prepare($user_query);
@@ -31,9 +48,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old_status = $plantation_data['old_status'];
         $plantation_name = (string) ($plantation_data['plantation_name'] ?? 'plantation');
 
+        if ($status === 'rejected') {
+            if ($rejection_reason === '' || !in_array($rejection_reason, $rejection_presets, true)) {
+                throw new Exception('Please select a reason for rejection.');
+            }
+            if ($is_verifier && trim((string) $remarks) === '') {
+                throw new Exception('Please add notes for the rejection.');
+            }
+        } else {
+            $rejection_reason = '';
+            // Verified: do not keep notes
+            if ($is_verifier) {
+                $remarks = '';
+            }
+        }
+
         // Update plantation status (approved_at when officially registered)
         $query = "UPDATE plantations SET 
                   status = :status,
+                  rejection_reason = :rejection_reason,
                   registered_at = CASE 
                     WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE registered_at 
@@ -45,25 +78,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   WHERE plantation_id = :plantation_id";
                   
         $stmt = $db->prepare($query);
+        $execParams = [
+            ':status' => $status,
+            ':rejection_reason' => $status === 'rejected' ? $rejection_reason : null,
+            ':plantation_id' => $plantation_id
+        ];
         try {
-            $stmt->execute([
-                ':status' => $status,
-                ':plantation_id' => $plantation_id
-            ]);
+            $stmt->execute($execParams);
         } catch (PDOException $e) {
-            if (strpos($e->getMessage(), 'approved_at') !== false) {
+            $msg = $e->getMessage();
+            if (strpos($msg, 'rejection_reason') !== false) {
                 $query = "UPDATE plantations SET 
                   status = :status,
+                  registered_at = CASE 
+                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    ELSE registered_at 
+                  END,
+                  approved_at = CASE 
+                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    ELSE approved_at 
+                  END
+                  WHERE plantation_id = :plantation_id";
+                $stmt = $db->prepare($query);
+                try {
+                    $stmt->execute([
+                        ':status' => $status,
+                        ':plantation_id' => $plantation_id
+                    ]);
+                } catch (PDOException $e2) {
+                    if (strpos($e2->getMessage(), 'approved_at') !== false) {
+                        $query = "UPDATE plantations SET 
+                          status = :status,
+                          registered_at = CASE 
+                            WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                            ELSE registered_at 
+                          END
+                          WHERE plantation_id = :plantation_id";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute([
+                            ':status' => $status,
+                            ':plantation_id' => $plantation_id
+                        ]);
+                    } else {
+                        throw $e2;
+                    }
+                }
+            } elseif (strpos($msg, 'approved_at') !== false) {
+                $query = "UPDATE plantations SET 
+                  status = :status,
+                  rejection_reason = :rejection_reason,
                   registered_at = CASE 
                     WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE registered_at 
                   END
                   WHERE plantation_id = :plantation_id";
                 $stmt = $db->prepare($query);
-                $stmt->execute([
-                    ':status' => $status,
-                    ':plantation_id' => $plantation_id
-                ]);
+                $stmt->execute($execParams);
             } else {
                 throw $e;
             }
@@ -71,6 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             $detail = trim((string) $remarks);
+            if ($status === 'rejected' && $rejection_reason !== '') {
+                $detail = $rejection_reason . ($detail !== '' ? ' — ' . $detail : '');
+            }
             if ($detail === '') {
                 $detail = null;
             }
@@ -91,13 +164,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($status !== $old_status && (int) $owner_user_id > 0) {
             $notif_message = '';
             if ($status === 'validated') {
-                $notif_message = 'Your plantation "' . $plantation_name . '" has been validated.';
+                $notif_message = 'Your plantation "' . $plantation_name . '" details have been checked and approved by admin. A verification visit may be scheduled next.';
             } elseif ($status === 'registered') {
-                $notif_message = 'Your plantation "' . $plantation_name . '" has been officially registered!';
+                $notif_message = $is_verifier
+                    ? 'Your plantation "' . $plantation_name . '" has been verified and officially registered!'
+                    : 'Your plantation "' . $plantation_name . '" has been officially registered!';
             } elseif ($status === 'rejected') {
-                $notif_message = 'Your plantation "' . $plantation_name . '" application was rejected.';
+                $notif_message = 'Your plantation "' . $plantation_name . '" application was rejected. Reason: ' . $rejection_reason . '.';
                 if (trim((string) $remarks) !== '') {
-                    $notif_message .= ' Remarks: ' . (strlen($remarks) > 180 ? substr($remarks, 0, 180) . '…' : $remarks);
+                    $notif_message .= ' Notes: ' . (strlen($remarks) > 180 ? substr($remarks, 0, 180) . '…' : $remarks);
                 }
             } else {
                 $notif_message = 'Your plantation "' . $plantation_name . '" status is now ' . $status . '.';

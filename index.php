@@ -467,7 +467,22 @@
                     method: 'POST',
                     body: new FormData(this)
                 })
-                .then(response => response.json())
+                .then(async (response) => {
+                    let data = null;
+                    try {
+                        data = await response.json();
+                    } catch (parseError) {
+                        data = null;
+                    }
+
+                    if (!response.ok || !data) {
+                        throw new Error(
+                            (data && data.message) ? data.message : 'Server error. Please try again.'
+                        );
+                    }
+
+                    return data;
+                })
                 .then(data => {
                     clearInterval(loadingTimer);
                     hideLoading();
@@ -481,10 +496,10 @@
                         showNotification('error', data.message || 'Registration failed.');
                     }
                 })
-                .catch(() => {
+                .catch((error) => {
                     clearInterval(loadingTimer);
                     hideLoading();
-                    showNotification('error', 'An error occurred. Please try again.');
+                    showNotification('error', error.message || 'An error occurred. Please try again.');
                 });
         });
 
