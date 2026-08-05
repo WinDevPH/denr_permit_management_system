@@ -19,6 +19,25 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
+    // Ensure columns exist (migrations may not have been run on hosting yet)
+    try {
+        $existingCols = $db->query('SHOW COLUMNS FROM plantations')->fetchAll(PDO::FETCH_COLUMN);
+        $ensureCols = [
+            'age_of_plantation' => 'ADD COLUMN age_of_plantation decimal(5,1) DEFAULT NULL',
+            'tax_declaration_path' => 'ADD COLUMN tax_declaration_path VARCHAR(255) DEFAULT NULL',
+            'site_photo_path' => 'ADD COLUMN site_photo_path VARCHAR(255) DEFAULT NULL',
+            'rejection_reason' => 'ADD COLUMN rejection_reason VARCHAR(255) DEFAULT NULL',
+        ];
+        foreach ($ensureCols as $col => $ddl) {
+            if (!in_array($col, $existingCols, true)) {
+                $db->exec("ALTER TABLE plantations {$ddl}");
+                $existingCols[] = $col;
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('update_plantation column check: ' . $e->getMessage());
+    }
+
     // Get POST data
     $plantation_id = $_POST['plantation_id'] ?? null;
     $plantation_name = $_POST['plantation_name'] ?? '';

@@ -18,17 +18,17 @@ try {
     $results = [];
 
     try {
-        $db->exec("ALTER TABLE plantations MODIFY COLUMN status ENUM('pending','validated','registered','rejected') DEFAULT 'pending'");
-        $results[] = 'OK: plantations.status includes rejected';
+        $db->exec("ALTER TABLE plantations MODIFY COLUMN status ENUM('pending','validated','verified','registered','rejected') DEFAULT 'pending'");
+        $results[] = 'OK: plantations.status includes rejected and verified';
     } catch (PDOException $e) {
         $results[] = 'SKIP/ERR status enum: ' . $e->getMessage();
     }
 
     $cols = $db->query('SHOW COLUMNS FROM plantations')->fetchAll(PDO::FETCH_COLUMN);
     $add = [
-        'rejection_reason' => "ADD COLUMN `rejection_reason` VARCHAR(255) DEFAULT NULL AFTER `status`",
-        'tax_declaration_path' => "ADD COLUMN `tax_declaration_path` VARCHAR(255) DEFAULT NULL AFTER `verification_document`",
-        'site_photo_path' => "ADD COLUMN `site_photo_path` VARCHAR(255) DEFAULT NULL AFTER `tax_declaration_path`",
+        'rejection_reason' => "ADD COLUMN `rejection_reason` VARCHAR(255) DEFAULT NULL",
+        'tax_declaration_path' => "ADD COLUMN `tax_declaration_path` VARCHAR(255) DEFAULT NULL",
+        'site_photo_path' => "ADD COLUMN `site_photo_path` VARCHAR(255) DEFAULT NULL",
     ];
     foreach ($add as $col => $ddl) {
         if (in_array($col, $cols, true)) {

@@ -69,7 +69,7 @@ try {
         "SELECT p.plantation_id, p.plantation_name, p.location_address, p.status, COALESCE(p.district,'') AS district, u.full_name AS owner_name
          FROM plantations p
          JOIN users u ON p.user_id = u.user_id
-         WHERE p.status IN ('validated', 'registered')
+         WHERE p.status IN ('validated', 'verified', 'registered')
          ORDER BY p.registered_at DESC"
     )->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (PDOException $e) {
@@ -78,7 +78,7 @@ try {
             "SELECT p.plantation_id, p.plantation_name, p.location_address, p.status, '' AS district, u.full_name AS owner_name
              FROM plantations p
              JOIN users u ON p.user_id = u.user_id
-             WHERE p.status IN ('validated', 'registered')
+             WHERE p.status IN ('validated', 'verified', 'registered')
              ORDER BY p.registered_at DESC"
         )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (PDOException $e2) {

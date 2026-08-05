@@ -218,7 +218,6 @@ foreach ($permits as $p) {
                         <div class="filter-group">
                             <select id="typeFilter" class="filter-select">
                                 <option value="">All Types</option>
-                                <option value="certificate">Registration Certificate</option>
                                 <option value="cutting">Cutting Permit</option>
                             </select>
                         </div>
@@ -380,12 +379,12 @@ foreach ($permits as $p) {
         </main>
     </div>
 
-    <!-- Request Permit Modal -->
+    <!-- Request Permit Modal — Cutting Permit only -->
     <div class="modal fade" id="requestPermitModal" tabindex="-1" aria-labelledby="requestPermitModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="requestPermitModalLabel">Request New Permit</h5>
+                    <h5 class="modal-title" id="requestPermitModalLabel">Request Cutting Permit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -394,32 +393,81 @@ foreach ($permits as $p) {
                         <i class="fas fa-exclamation-triangle"></i>
                         <h4>No Available Plantations</h4>
                         <?php if (empty($plantations)): ?>
-                        <p>You need at least one registered plantation before requesting a permit.</p>
+                        <p>You need at least one registered plantation before requesting a cutting permit.</p>
                         <?php else: ?>
                         <p>All your registered plantations already have permit requests.</p>
                         <?php endif; ?>
                     </div>
                     <?php else: ?>
-                    <form id="permitRequestForm">
+                    <div class="text-center mb-3">
+                        <img src="../../../assets/img/denrlogo.png" alt="DENR" style="height:48px;margin-right:0.5rem;">
+                        <img src="../../../assets/img/fmb_logo.png" alt="FMB / Bureau" style="height:48px;">
+                    </div>
+                    <h6 class="text-center mb-3">Cutting Permit — Important Information Required</h6>
+                    <form id="permitRequestForm" enctype="multipart/form-data">
+                        <input type="hidden" name="permit_type" value="cutting">
                         <div class="mb-3">
                             <label class="form-label">Select Plantation</label>
-                            <select class="form-select" name="plantation_id" required>
+                            <select class="form-select" name="plantation_id" id="cuttingPlantationSelect" required>
                                 <option value="">Choose a plantation...</option>
                                 <?php foreach ($available_plantations as $plantation): ?>
-                                <option value="<?php echo (int)$plantation['plantation_id']; ?>"><?php echo htmlspecialchars($plantation['plantation_name']); ?></option>
+                                <option value="<?php echo (int)$plantation['plantation_id']; ?>"
+                                    data-name="<?php echo htmlspecialchars($plantation['contact_person_name'] ?? $plantation['plantation_name'] ?? '', ENT_QUOTES); ?>"
+                                    data-phone="<?php echo htmlspecialchars($plantation['contact_phone'] ?? '', ENT_QUOTES); ?>"
+                                    data-location="<?php echo htmlspecialchars($plantation['location_address'] ?? '', ENT_QUOTES); ?>"
+                                    data-area="<?php echo htmlspecialchars($plantation['land_area'] ?? '', ENT_QUOTES); ?>"
+                                    data-species="<?php echo htmlspecialchars($plantation['tree_species'] ?? '', ENT_QUOTES); ?>">
+                                    <?php echo htmlspecialchars($plantation['plantation_name']); ?>
+                                </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Permit type</label>
-                            <select class="form-select" name="permit_type" required>
-                                <option value="certificate">Registration Certificate</option>
-                                <option value="cutting">Cutting Permit</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Additional Remarks</label>
-                            <textarea class="form-control" name="remarks" rows="3" placeholder="Optional notes..."></textarea>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Applicant Name</label>
+                                <input type="text" class="form-control" name="applicant_name" id="cuttingApplicantName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contact Number</label>
+                                <input type="text" class="form-control" name="contact_number" id="cuttingContactNumber" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Property Location</label>
+                                <input type="text" class="form-control" name="property_location" id="cuttingPropertyLocation" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Proof of Ownership</label>
+                                <input type="text" class="form-control" name="proof_of_ownership" placeholder="Tax Declaration No. / Title No." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Land Area (hectares)</label>
+                                <input type="number" step="0.01" min="0" class="form-control" name="cutting_land_area" id="cuttingLandArea" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tree Species</label>
+                                <input type="text" class="form-control" name="cutting_tree_species" id="cuttingTreeSpecies" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Trees to be Cut</label>
+                                <input type="number" min="1" class="form-control" name="trees_to_cut" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Reason for Cutting</label>
+                                <textarea class="form-control" name="reason_for_cutting" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Intended Use of the Timber</label>
+                                <textarea class="form-control" name="intended_use" rows="2" required></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Supporting Documents</label>
+                                <p class="small text-muted mb-1">Valid ID, Tax Declaration/Title, Plantation Photos</p>
+                                <input type="file" class="form-control" name="supporting_docs[]" accept="image/*,.pdf,.doc,.docx" multiple required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Additional Remarks <span class="text-muted">(optional)</span></label>
+                                <textarea class="form-control" name="remarks" rows="2" placeholder="Optional notes..."></textarea>
+                            </div>
                         </div>
                     </form>
                     <?php endif; ?>
@@ -547,6 +595,24 @@ foreach ($permits as $p) {
                         console.error(err);
                         showNotification('error', 'An error occurred while submitting the request');
                     });
+            });
+        }
+
+        var plantSelect = document.getElementById('cuttingPlantationSelect');
+        if (plantSelect) {
+            plantSelect.addEventListener('change', function() {
+                var opt = this.options[this.selectedIndex];
+                if (!opt || !opt.value) return;
+                var nameEl = document.getElementById('cuttingApplicantName');
+                var phoneEl = document.getElementById('cuttingContactNumber');
+                var locEl = document.getElementById('cuttingPropertyLocation');
+                var areaEl = document.getElementById('cuttingLandArea');
+                var speciesEl = document.getElementById('cuttingTreeSpecies');
+                if (nameEl && !nameEl.value) nameEl.value = opt.getAttribute('data-name') || '';
+                if (phoneEl && !phoneEl.value) phoneEl.value = opt.getAttribute('data-phone') || '';
+                if (locEl) locEl.value = opt.getAttribute('data-location') || '';
+                if (areaEl) areaEl.value = opt.getAttribute('data-area') || '';
+                if (speciesEl) speciesEl.value = opt.getAttribute('data-species') || '';
             });
         }
     });

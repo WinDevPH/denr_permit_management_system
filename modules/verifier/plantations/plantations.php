@@ -63,8 +63,20 @@ $stats = [
     'total' => $db->query("SELECT COUNT(*) FROM plantations")->fetchColumn(),
     'pending' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='pending'")->fetchColumn(),
     'validated' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='validated'")->fetchColumn(),
+    'verified' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='verified'")->fetchColumn(),
     'registered' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='registered'")->fetchColumn()
 ];
+
+function denr_verifier_status_label($status) {
+    $map = [
+        'pending' => 'Pending',
+        'validated' => 'Checked',
+        'verified' => 'Verified',
+        'registered' => 'Registered',
+        'rejected' => 'Rejected',
+    ];
+    return $map[$status] ?? ucfirst((string) $status);
+}
 ?>
 
 <!DOCTYPE html>
@@ -153,7 +165,7 @@ $stats = [
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <span class="stat-number"><?php echo $stats['registered']; ?></span>
+                            <span class="stat-number"><?php echo (int)$stats['verified'] + (int)$stats['registered']; ?></span>
                             <span class="stat-label">Verified</span>
                         </div>
                     </div>
@@ -180,8 +192,10 @@ $stats = [
                                     Pending</option>
                                 <option value="validated"
                                     <?php echo $status_filter === 'validated' ? 'selected' : ''; ?>>Checked</option>
+                                <option value="verified"
+                                    <?php echo $status_filter === 'verified' ? 'selected' : ''; ?>>Verified</option>
                                 <option value="registered"
-                                    <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Verified</option>
+                                    <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
                                 <option value="rejected"
                                     <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
                             </select>
@@ -316,9 +330,7 @@ $stats = [
                                     <td>
                                         <span
                                             class="status-badge status-<?php echo $plantation['status']; ?>"><?php
-                                            $stLabel = $plantation['status'] === 'validated' ? 'Checked'
-                                                : ($plantation['status'] === 'registered' ? 'Verified' : ucfirst($plantation['status']));
-                                            echo htmlspecialchars($stLabel);
+                                            echo htmlspecialchars(denr_verifier_status_label($plantation['status']));
                                             ?></span>
                                     </td>
                                     <td>
@@ -478,16 +490,19 @@ $stats = [
                             </div>
                         </section>
 
-                        <section class="modal-section modal-section-actions" aria-labelledby="reviewFormHeading">
+                        <section class="modal-section modal-section-actions" aria-labelledby="reviewFormHeading" id="verifierReviewActions">
                             <h3 id="reviewFormHeading" class="modal-section-title">Review</h3>
-                            <p class="small text-muted mb-2">Choose <strong>Verified</strong> or <strong>Reject</strong>. A reason and notes are required only when rejecting.</p>
-                            <div class="form-grid form-grid-review">
+                            <p class="small text-muted mb-2" id="verifierReviewHint">Choose <strong>Verified</strong> or <strong>Reject</strong>. Notes are required only when rejecting. Status is never “Approved”.</p>
+                            <div class="alert alert-info py-2 px-3 small mb-0" id="verifierAlreadyDone" style="display:none;">
+                                This plantation is already <strong>Verified</strong> or <strong>Registered</strong>. No further notes or status changes are needed.
+                            </div>
+                            <div class="form-grid form-grid-review" id="verifierStatusForm">
                                 <div class="form-group">
                                     <label class="form-label" for="statusSelect">Status</label>
                                     <select name="status" id="statusSelect" class="form-control modern-select" required
                                         aria-required="true" onchange="toggleRejectionReason()">
                                         <option value="">Select status...</option>
-                                        <option value="registered">Verified</option>
+                                        <option value="verified">Verified</option>
                                         <option value="rejected">Reject</option>
                                     </select>
                                 </div>
@@ -511,7 +526,7 @@ $stats = [
                             </div>
                         </section>
                     </div>
-                    <footer class="modal-footer modern-footer">
+                    <footer class="modal-footer modern-footer" id="verifierReviewFooter">
                         <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
                             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -520,7 +535,7 @@ $stats = [
                             </svg>
                             Cancel
                         </button>
-                        <button type="submit" class="btn btn-update">
+                        <button type="submit" class="btn btn-update" id="verifierUpdateBtn">
                             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -612,13 +627,36 @@ $stats = [
     function reviewPlantation(plantation) {
         document.getElementById('plantation_id').value = plantation.plantation_id;
 
-        // Set current status in dropdown (verifier: Verified or Reject only)
+        const alreadyDone = plantation.status === 'verified' || plantation.status === 'registered';
+        const statusForm = document.getElementById('verifierStatusForm');
+        const alreadyDoneMsg = document.getElementById('verifierAlreadyDone');
+        const reviewHint = document.getElementById('verifierReviewHint');
+        const updateBtn = document.getElementById('verifierUpdateBtn');
         const statusSelect = document.getElementById('statusSelect');
-        if (plantation.status === 'registered' || plantation.status === 'rejected') {
-            statusSelect.value = plantation.status;
+
+        if (alreadyDone) {
+            if (statusForm) statusForm.style.display = 'none';
+            if (alreadyDoneMsg) alreadyDoneMsg.style.display = '';
+            if (reviewHint) reviewHint.style.display = 'none';
+            if (updateBtn) updateBtn.style.display = 'none';
+            if (statusSelect) {
+                statusSelect.required = false;
+                statusSelect.disabled = true;
+                statusSelect.value = '';
+            }
         } else {
-            statusSelect.value = '';
+            if (statusForm) statusForm.style.display = '';
+            if (alreadyDoneMsg) alreadyDoneMsg.style.display = 'none';
+            if (reviewHint) reviewHint.style.display = '';
+            if (updateBtn) updateBtn.style.display = '';
+            if (statusSelect) {
+                statusSelect.required = true;
+                statusSelect.disabled = false;
+                // Verifier: Verified or Reject only (never Approved)
+                statusSelect.value = plantation.status === 'rejected' ? 'rejected' : '';
+            }
         }
+
         const reasonSel = document.getElementById('rejectionReason');
         if (reasonSel) {
             reasonSel.value = plantation.rejection_reason || '';
@@ -768,9 +806,11 @@ $stats = [
                 <div>
                     <strong>Picture of the site</strong>
                     <span>
-                        <a href="../../../${plantation.site_photo_path}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-image"></i> View Site Photo
+                        <a href="../../../${plantation.site_photo_path}" target="_blank" class="btn btn-sm btn-outline-primary mb-1">
+                            <i class="fas fa-image"></i> Open Full Size
                         </a>
+                        <img src="../../../${plantation.site_photo_path}" alt="Site photo" class="review-site-photo-preview" loading="lazy"
+                            onerror="this.style.display='none'">
                     </span>
                 </div>
             </div>` : ''}

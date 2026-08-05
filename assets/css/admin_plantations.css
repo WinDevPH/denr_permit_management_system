@@ -111,9 +111,24 @@
   color: #155724;
 }
 
+.admin-plantations .status-verified {
+  background: rgba(13, 110, 253, 0.15);
+  color: #084298;
+}
+
 .admin-plantations .status-registered {
   background: rgba(23, 162, 184, 0.2);
   color: #004085;
+}
+
+.review-site-photo-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
 }
 
 .admin-plantations .status-rejected {

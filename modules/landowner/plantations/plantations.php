@@ -156,7 +156,14 @@ function formatTreeSpeciesDisplay($tree_species) {
                             <div class="plantation-status <?php echo $plantation['status']; ?>">
                                 <?php
                                 $st = $plantation['status'];
-                                echo htmlspecialchars($st === 'validated' ? 'Checked' : ucfirst($st));
+                                $stLabel = [
+                                    'pending' => 'Pending',
+                                    'validated' => 'Checked',
+                                    'verified' => 'Verified',
+                                    'registered' => 'Registered',
+                                    'rejected' => 'Rejected',
+                                ][$st] ?? ucfirst((string) $st);
+                                echo htmlspecialchars($stLabel);
                                 ?>
                             </div>
                             <?php if ($st === 'rejected' && !empty($plantation['rejection_reason'])): ?>

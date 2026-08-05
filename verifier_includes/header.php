@@ -280,15 +280,55 @@ try {
         const dashboardContainer = document.querySelector('.dashboard-container');
         const sidebar = document.querySelector('.sidebar');
         const menuToggle = document.querySelector('.menu-toggle');
+
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        function closeMobileSidebar() {
+            if (!dashboardContainer) return;
+            dashboardContainer.classList.remove('sidebar-collapsed');
+            try { localStorage.setItem(SIDEBAR_STORAGE_KEY, 'false'); } catch (e) {}
+        }
+
         if (menuToggle && dashboardContainer) {
             try {
-                if (localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true') dashboardContainer.classList.add('sidebar-collapsed');
+                // On mobile, never restore open overlay from localStorage (would stay stuck open)
+                if (!isMobile() && localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true') {
+                    dashboardContainer.classList.add('sidebar-collapsed');
+                } else if (isMobile()) {
+                    closeMobileSidebar();
+                }
             } catch (e) {}
             menuToggle.addEventListener('click', function() {
                 dashboardContainer.classList.toggle('sidebar-collapsed');
-                try { localStorage.setItem(SIDEBAR_STORAGE_KEY, dashboardContainer.classList.contains('sidebar-collapsed')); } catch (e) {}
+                try {
+                    localStorage.setItem(
+                        SIDEBAR_STORAGE_KEY,
+                        isMobile() ? 'false' : String(dashboardContainer.classList.contains('sidebar-collapsed'))
+                    );
+                } catch (e) {}
             });
         }
+
+        // Close sidebar after nav / profile / logout on mobile
+        if (sidebar) {
+            sidebar.querySelectorAll('a, .sidebar-logout-btn').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    if (isMobile()) closeMobileSidebar();
+                });
+            });
+        }
+
+        // Close when tapping backdrop / outside on mobile
+        document.addEventListener('click', function(event) {
+            if (!isMobile() || !dashboardContainer || !sidebar || !menuToggle) return;
+            const isOpen = dashboardContainer.classList.contains('sidebar-collapsed');
+            if (!isOpen) return;
+            if (sidebar.contains(event.target) || menuToggle.contains(event.target)) return;
+            closeMobileSidebar();
+        });
+
         const notifBell = document.getElementById('notifBell');
         const notifDropdown = document.getElementById('notifDropdown');
         if (notifBell && notifDropdown) {

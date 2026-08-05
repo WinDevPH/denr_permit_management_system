@@ -27,9 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_verifier = (isset($_SESSION['role']) && $_SESSION['role'] === 'verifier');
 
     try {
+        // Ensure verified is in ENUM
+        try {
+            $db->exec("ALTER TABLE plantations MODIFY COLUMN status ENUM('pending','validated','verified','registered','rejected') DEFAULT 'pending'");
+        } catch (Throwable $e) {
+            // ignore if already applied
+        }
+
+        // Verifier: Verified or Reject only (never Approved / never official Registered)
         $allowed = $is_verifier
-            ? ['registered', 'rejected']
-            : ['pending', 'validated', 'registered', 'rejected'];
+            ? ['verified', 'rejected']
+            : ['pending', 'validated', 'verified', 'registered', 'rejected'];
         if (!in_array($status, $allowed, true)) {
             throw new Exception('Invalid status selected');
         }
@@ -48,6 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $old_status = $plantation_data['old_status'];
         $plantation_name = (string) ($plantation_data['plantation_name'] ?? 'plantation');
 
+        // Verifier cannot re-review once already verified or officially registered
+        if ($is_verifier && in_array($old_status, ['verified', 'registered'], true) && $status !== 'rejected') {
+            throw new Exception('This plantation is already verified. No further notes or status changes are needed.');
+        }
+
         if ($status === 'rejected') {
             if ($rejection_reason === '' || !in_array($rejection_reason, $rejection_presets, true)) {
                 throw new Exception('Please select a reason for rejection.');
@@ -57,22 +70,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $rejection_reason = '';
-            // Verified: do not keep notes
+            // Verified / Registered: do not keep notes
             if ($is_verifier) {
                 $remarks = '';
             }
         }
 
-        // Update plantation status (approved_at when officially registered)
+        // Update plantation status
+        // registered_at / approved_at only when officially Registered (not when merely Verified)
         $query = "UPDATE plantations SET 
                   status = :status,
                   rejection_reason = :rejection_reason,
                   registered_at = CASE 
-                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    WHEN :status2 = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE registered_at 
                   END,
                   approved_at = CASE 
-                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    WHEN :status3 = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE approved_at 
                   END
                   WHERE plantation_id = :plantation_id";
@@ -80,6 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare($query);
         $execParams = [
             ':status' => $status,
+            ':status2' => $status,
+            ':status3' => $status,
             ':rejection_reason' => $status === 'rejected' ? $rejection_reason : null,
             ':plantation_id' => $plantation_id
         ];
@@ -91,11 +107,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $query = "UPDATE plantations SET 
                   status = :status,
                   registered_at = CASE 
-                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    WHEN :status2 = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE registered_at 
                   END,
                   approved_at = CASE 
-                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    WHEN :status3 = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE approved_at 
                   END
                   WHERE plantation_id = :plantation_id";
@@ -103,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt->execute([
                         ':status' => $status,
+                        ':status2' => $status,
+                        ':status3' => $status,
                         ':plantation_id' => $plantation_id
                     ]);
                 } catch (PDOException $e2) {
@@ -110,13 +128,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $query = "UPDATE plantations SET 
                           status = :status,
                           registered_at = CASE 
-                            WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                            WHEN :status2 = 'registered' THEN CURRENT_TIMESTAMP
                             ELSE registered_at 
                           END
                           WHERE plantation_id = :plantation_id";
                         $stmt = $db->prepare($query);
                         $stmt->execute([
                             ':status' => $status,
+                            ':status2' => $status,
                             ':plantation_id' => $plantation_id
                         ]);
                     } else {
@@ -128,12 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   status = :status,
                   rejection_reason = :rejection_reason,
                   registered_at = CASE 
-                    WHEN :status = 'registered' THEN CURRENT_TIMESTAMP
+                    WHEN :status2 = 'registered' THEN CURRENT_TIMESTAMP
                     ELSE registered_at 
                   END
                   WHERE plantation_id = :plantation_id";
                 $stmt = $db->prepare($query);
-                $stmt->execute($execParams);
+                $stmt->execute([
+                    ':status' => $status,
+                    ':status2' => $status,
+                    ':rejection_reason' => $status === 'rejected' ? $rejection_reason : null,
+                    ':plantation_id' => $plantation_id
+                ]);
             } else {
                 throw $e;
             }
@@ -164,11 +188,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($status !== $old_status && (int) $owner_user_id > 0) {
             $notif_message = '';
             if ($status === 'validated') {
-                $notif_message = 'Your plantation "' . $plantation_name . '" details have been checked and approved by admin. A verification visit may be scheduled next.';
+                $notif_message = 'Your plantation "' . $plantation_name . '" details have been checked by admin. A verification visit may be scheduled next.';
+            } elseif ($status === 'verified') {
+                $notif_message = 'Your plantation "' . $plantation_name . '" has been verified by the field verifier. Official registration will follow.';
             } elseif ($status === 'registered') {
-                $notif_message = $is_verifier
-                    ? 'Your plantation "' . $plantation_name . '" has been verified and officially registered!'
-                    : 'Your plantation "' . $plantation_name . '" has been officially registered!';
+                $notif_message = 'Your plantation "' . $plantation_name . '" has been officially registered!';
             } elseif ($status === 'rejected') {
                 $notif_message = 'Your plantation "' . $plantation_name . '" application was rejected. Reason: ' . $rejection_reason . '.';
                 if (trim((string) $remarks) !== '') {
@@ -180,6 +204,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             denr_notify_user($db, (int) $owner_user_id, $notif_message);
 
+            if ($status === 'verified') {
+                denr_notify_admins_verifier_activity(
+                    $db,
+                    'Plantation verified: "' . $plantation_name . '" — awaiting official registration.'
+                );
+            }
             if ($status === 'registered') {
                 denr_notify_verifiers(
                     $db,

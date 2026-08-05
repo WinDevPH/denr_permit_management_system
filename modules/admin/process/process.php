@@ -31,7 +31,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
                         <h5 class="mb-3">Why we have Registration, Request, etc.</h5>
                         <ol class="process-steps">
                             <li><strong>Registration</strong> – Landowners register their plantation (land area, location, map pins, Mohon boundary). This creates the record that can later be used for permits.</li>
-                            <li><strong>Request</strong> – After a plantation is validated/registered, the landowner can request a permit (e.g. Registration Certificate or Cutting Permit).</li>
+                            <li><strong>Request</strong> – After a plantation is officially <em>Registered</em>, the landowner can request a Cutting Permit (Registration Certificate is issued via the registration process, not this request form).</li>
                             <li><strong>Verification</strong> – Admin/verifier can schedule and perform land and permit verification. Time schedule is used for verification.</li>
                             <li><strong>Approval / Rejection</strong> – Admin reviews the permit application and approves or rejects with remarks.</li>
                         </ol>

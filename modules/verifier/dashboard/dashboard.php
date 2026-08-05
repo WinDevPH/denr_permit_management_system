@@ -13,6 +13,7 @@ $stats = [
     'pending_plantations' => 0,
     'pending_permits'     => 0,
     'validated'           => 0,
+    'verified'            => 0,
     'registered'          => 0,
     'approved_permits'    => 0,
     'rejected_permits'    => 0,
@@ -22,6 +23,7 @@ try {
     $stats['pending_plantations'] = (int) $db->query("SELECT COUNT(*) FROM plantations WHERE status = 'pending'")->fetchColumn();
     $stats['pending_permits']     = (int) $db->query("SELECT COUNT(*) FROM permits WHERE status = 'pending'")->fetchColumn();
     $stats['validated']           = (int) $db->query("SELECT COUNT(*) FROM plantations WHERE status = 'validated'")->fetchColumn();
+    $stats['verified']            = (int) $db->query("SELECT COUNT(*) FROM plantations WHERE status = 'verified'")->fetchColumn();
     $stats['registered']          = (int) $db->query("SELECT COUNT(*) FROM plantations WHERE status = 'registered'")->fetchColumn();
     $stats['approved_permits']    = (int) $db->query("SELECT COUNT(*) FROM permits WHERE status = 'approved'")->fetchColumn();
     $stats['rejected_permits']    = (int) $db->query("SELECT COUNT(*) FROM permits WHERE status = 'rejected'")->fetchColumn();
@@ -90,11 +92,11 @@ try {
                         </div>
                         <span class="admin-kpi-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
                     </a>
-                    <a href="../plantations/plantations.php?status=registered" class="admin-kpi admin-kpi--success">
+                    <a href="../plantations/plantations.php?status=verified" class="admin-kpi admin-kpi--success">
                         <div class="admin-kpi-body">
-                            <span class="admin-kpi-label">Registered</span>
-                            <span class="admin-kpi-value"><?php echo $stats['registered']; ?></span>
-                            <span class="admin-kpi-meta">Plantations</span>
+                            <span class="admin-kpi-label">Verified</span>
+                            <span class="admin-kpi-value"><?php echo $stats['verified']; ?></span>
+                            <span class="admin-kpi-meta">Awaiting registration</span>
                         </div>
                         <span class="admin-kpi-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
                     </a>

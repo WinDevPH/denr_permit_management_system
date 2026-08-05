@@ -103,14 +103,28 @@ try {
         mkdir($upload_dir, 0777, true);
     }
 
-    // Ensure age column exists (migration may not have been run yet)
+    // Ensure columns exist (migrations may not have been run on hosting yet)
     try {
-        $colCheck = $db->query("SHOW COLUMNS FROM plantations LIKE 'age_of_plantation'");
-        if ($colCheck && $colCheck->rowCount() === 0) {
-            $db->exec('ALTER TABLE plantations ADD COLUMN age_of_plantation decimal(5,1) DEFAULT NULL AFTER land_area');
+        $existingCols = $db->query('SHOW COLUMNS FROM plantations')->fetchAll(PDO::FETCH_COLUMN);
+        $ensureCols = [
+            'age_of_plantation' => 'ADD COLUMN age_of_plantation decimal(5,1) DEFAULT NULL',
+            'tax_declaration_path' => 'ADD COLUMN tax_declaration_path VARCHAR(255) DEFAULT NULL',
+            'site_photo_path' => 'ADD COLUMN site_photo_path VARCHAR(255) DEFAULT NULL',
+            'rejection_reason' => 'ADD COLUMN rejection_reason VARCHAR(255) DEFAULT NULL',
+        ];
+        foreach ($ensureCols as $col => $ddl) {
+            if (!in_array($col, $existingCols, true)) {
+                $db->exec("ALTER TABLE plantations {$ddl}");
+                $existingCols[] = $col;
+            }
+        }
+        try {
+            $db->exec("ALTER TABLE plantations MODIFY COLUMN status ENUM('pending','validated','verified','registered','rejected') DEFAULT 'pending'");
+        } catch (Throwable $e) {
+            // enum already includes rejected, or hosting restricts MODIFY
         }
     } catch (Throwable $e) {
-        error_log('age_of_plantation column check: ' . $e->getMessage());
+        error_log('plantations column check: ' . $e->getMessage());
     }
 
     $saveUpload = function (array $file, array $allowed_types, string $label) use ($upload_dir, $max_size): string {

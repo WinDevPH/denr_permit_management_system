@@ -46,7 +46,7 @@
                         </div>
                         <div class="about-text">
                             <h3>DENR REGION IX</h3>
-                            <h4>DENR REGION IX CENTRALIZED DIGITAL SYSTEM FOR TREE REGISTRATION AND PERMITS IN PRIVATE AND LANDS</h4>
+                            <h4>DENR REGION IX CENTRALIZED DIGITAL SYSTEM FOR TREE REGISTRATION AND PERMITS IN PRIVATE IN LANDS</h4>
                             <p>
                                 is an official digital platform of the Department of Environment and Natural Resources –
                                 Region IX, designed to streamline the registration, mapping, and permitting of private
@@ -266,7 +266,7 @@
                             <img src="assets/img/denrlogo.png" alt="DENR Logo" class="hero-logo" width="96" height="96">
                         </div>
                         <h1 class="hero-title">DENR Region IX</h1>
-                        <p class="hero-desc">DENR REGION IX CENTRALIZED DIGITAL SYSTEM FOR TREE REGISTRATION AND PERMITS IN PRIVATE AND LANDS</p>
+                        <p class="hero-desc">DENR REGION IX CENTRALIZED DIGITAL SYSTEM FOR TREE REGISTRATION AND PERMITS IN PRIVATE IN LANDS</p>
                         <div class="hero-actions">
                             <a href="#" class="btn-wp btn-wp-primary" data-bs-toggle="modal" data-bs-target="#registrationModal">
                                 <svg class="btn-wp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>

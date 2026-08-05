@@ -63,8 +63,20 @@ $stats = [
     'total' => $db->query("SELECT COUNT(*) FROM plantations")->fetchColumn(),
     'pending' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='pending'")->fetchColumn(),
     'validated' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='validated'")->fetchColumn(),
+    'verified' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='verified'")->fetchColumn(),
     'registered' => $db->query("SELECT COUNT(*) FROM plantations WHERE status='registered'")->fetchColumn()
 ];
+
+function denr_admin_status_label($status) {
+    $map = [
+        'pending' => 'Pending',
+        'validated' => 'Checked',
+        'verified' => 'Verified',
+        'registered' => 'Registered',
+        'rejected' => 'Rejected',
+    ];
+    return $map[$status] ?? ucfirst((string) $status);
+}
 ?>
 
 <!DOCTYPE html>
@@ -147,6 +159,19 @@ $stats = [
                         <div class="stat-icon info">
                             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number"><?php echo $stats['verified']; ?></span>
+                            <span class="stat-label">Verified</span>
+                        </div>
+                    </div>
+                    <div class="admin-stat-item">
+                        <div class="stat-icon info">
+                            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                 <polyline points="14 2 14 8 20 8" />
                                 <line x1="16" y1="13" x2="8" y2="13" />
@@ -182,6 +207,8 @@ $stats = [
                                     Pending</option>
                                 <option value="validated"
                                     <?php echo $status_filter === 'validated' ? 'selected' : ''; ?>>Checked</option>
+                                <option value="verified"
+                                    <?php echo $status_filter === 'verified' ? 'selected' : ''; ?>>Verified</option>
                                 <option value="registered"
                                     <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
                                 <option value="rejected"
@@ -318,8 +345,7 @@ $stats = [
                                     <td>
                                         <span
                                             class="status-badge status-<?php echo $plantation['status']; ?>"><?php
-                                            $stLabel = $plantation['status'] === 'validated' ? 'Checked' : ucfirst($plantation['status']);
-                                            echo htmlspecialchars($stLabel);
+                                            echo htmlspecialchars(denr_admin_status_label($plantation['status']));
                                             ?></span>
                                     </td>
                                     <td>
@@ -481,7 +507,7 @@ $stats = [
 
                         <section class="modal-section modal-section-actions" aria-labelledby="reviewFormHeading">
                             <h3 id="reviewFormHeading" class="modal-section-title">Review</h3>
-                            <p class="small text-muted mb-2">Use <strong>Checked</strong> to confirm client details before scheduling a verifier. Use <strong>Rejected</strong> to deny with a reason (client is notified).</p>
+                            <p class="small text-muted mb-2">Use <strong>Checked</strong> to confirm client details before scheduling a verifier. Use <strong>Verified</strong> after field verification (not yet registered). Use <strong>Registered</strong> only when registration succeeds. Use <strong>Rejected</strong> to deny with a reason.</p>
                             <div class="form-grid form-grid-review">
                                 <div class="form-group">
                                     <label class="form-label" for="statusSelect">Status</label>
@@ -489,8 +515,9 @@ $stats = [
                                         aria-required="true" onchange="toggleRejectionReason()">
                                         <option value="">Select status...</option>
                                         <option value="pending">Pending</option>
-                                        <option value="validated">Checked (details approved)</option>
-                                        <option value="registered">Registered</option>
+                                        <option value="validated">Checked (details OK)</option>
+                                        <option value="verified">Verified (by verifier)</option>
+                                        <option value="registered">Registered (registration success)</option>
                                         <option value="rejected">Rejected</option>
                                     </select>
                                 </div>
@@ -756,9 +783,11 @@ $stats = [
                 <div>
                     <strong>Picture of the site</strong>
                     <span>
-                        <a href="../../../${plantation.site_photo_path}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-image"></i> View Site Photo
+                        <a href="../../../${plantation.site_photo_path}" target="_blank" class="btn btn-sm btn-outline-primary mb-1">
+                            <i class="fas fa-image"></i> Open Full Size
                         </a>
+                        <img src="../../../${plantation.site_photo_path}" alt="Site photo" class="review-site-photo-preview" loading="lazy"
+                            onerror="this.style.display='none'">
                     </span>
                 </div>
             </div>` : ''}
